@@ -31,7 +31,7 @@ CoreLab is a simple hello world application for debugging. Here are some scripts
 
 `CoreLab\r.cmd` - run the CoreLab project, requires `p`.
 
-`CoreLab\d.cmd` - debug the CoreLab project using WinDBG, requires `p`, requires `WinDBG`, hard coded path.
+`CoreLab\d.cmd` - debug the CoreLab project using WinDBG, requires `p`, requires `WinDBG`, hard coded path. It will automatically run the content in `autodbg.script`.
 
 `CoreLab\cgd.cmd`  - crossgen CoreLab with hot-cold-splitting on and start in debug mode, require `bc` to rebuild the crossgen, and require visual studio to attach to it to make progress (otherwise stuck in the initial infinite loop)
 
@@ -39,3 +39,6 @@ CoreLab is a simple hello world application for debugging. Here are some scripts
 
 `CoreLab\r2r.cmd`  - generate a R2RDump file for CoreLab
 
+`CoreLab\log_on.cmd` - Turn on EH logging to debug exception handling related issues
+
+`CoreLab\log_off.cmd` - Turn on EH logging to debug exception handling related issues
