@@ -1,0 +1,1 @@
+call %~dp0..\dotnet.cmd %~dp0..\artifacts\bin\coreclr\windows.x64.Debug\R2RDump\R2RDump.dll --disasm --header --sc --in %~dp0..\artifacts\bin\CoreLab\Debug\net6.0\win-x64\publish\CoreLab.dll > %~dp0..\artifacts\bin\CoreLab\Debug\net6.0\win-x64\publish\CoreLab.r2rdump

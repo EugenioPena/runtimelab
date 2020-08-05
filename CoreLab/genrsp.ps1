@@ -1,0 +1,1 @@
+Get-Content ./c.rsp.template | ForEach-Object { $_ -replace "_RUNTIME_ROOT_", ($PSScriptRoot + "\..\")} | ForEach-Object { $_ -replace "_USER_ROOT_", $env:USERPROFILE} | Set-Content "c.rsp"
