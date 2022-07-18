@@ -7,10 +7,39 @@ using System.Diagnostics;
 
 namespace CoreLab
 {
+
+
     internal static class Program
     {
+
+        public static void testFunc()
+        {
+
+            // Console.WriteLine("test");
+            // num = num * 2;
+            // return num;
+
+            try
+            {
+                try
+                {
+                    System.Convert.FromHexString(null);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+        }
+
         public static void Main(string[] args)
         {
+            testFunc();
             try
             {
                 try

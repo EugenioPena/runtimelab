@@ -4,3 +4,9 @@ g
 !do 0
 bm coreclr!*andrew_debug*
 .echo Game On
+sxe clr
+g
+bm coreclr!*ReadyToRunJitManager::JitCodeToMethodInfo*
+bm coreclr!*ReadyToRunJitManager::JitTokenToMethodRegionInfo*
+g
+k
