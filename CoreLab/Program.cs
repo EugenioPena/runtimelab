@@ -30,9 +30,9 @@ namespace CoreLab
                     throw;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine("hello1");
             }
 
         }
@@ -51,9 +51,9 @@ namespace CoreLab
                     throw;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine("hello2");
             }
         }
     }

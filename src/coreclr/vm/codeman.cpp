@@ -6117,7 +6117,6 @@ BOOL ReadyToRunJitManager::JitCodeToMethodInfo(RangeSection * pRangeSection,
     PTR_RUNTIME_FUNCTION RawFunctionEntry = pRuntimeFunctions + MethodIndex;
 
     ULONG UMethodIndex = (ULONG)MethodIndex;
-    ULONG UColdMethodIndex = UMethodIndex;
 
     // If the MethodIndex happen to be the cold code block, turn it into the associated hot code block
     for (DWORD i = 0; i < pInfo->m_nScratch; i++)
@@ -6144,28 +6143,10 @@ BOOL ReadyToRunJitManager::JitCodeToMethodInfo(RangeSection * pRangeSection,
 
             if (isFuncletIndex)
             {
-                UColdMethodIndex = pInfo->m_pScratch[i];
                 MethodIndex = pInfo->m_pScratch[i + 1];
                 break;
             }
         }
-    }
-
-    UMethodIndex = (ULONG)MethodIndex;
-
-    //Case where either the function isn't split or we're already in the hot block
-    if(UMethodIndex == UColdMethodIndex){
-        PTR_RUNTIME_FUNCTION FunctionEntry = pRuntimeFunctions + UColdMethodIndex;
-        pCodeInfo->m_relOffset = RelativePc - RUNTIME_FUNCTION__BeginAddress(FunctionEntry);
-    }
-
-    //Case where we're in the cold section
-    else{
-        PTR_RUNTIME_FUNCTION coldFunctionEntry = pRuntimeFunctions + UColdMethodIndex;
-        PTR_RUNTIME_FUNCTION hotFunctionEntry = pRuntimeFunctions + UMethodIndex;
-        DWORD offsetFromColdStart = RelativePc - RUNTIME_FUNCTION__BeginAddress(coldFunctionEntry);
-        DWORD hotSize = RUNTIME_FUNCTION__EndAddress(hotFunctionEntry, 0) - RUNTIME_FUNCTION__BeginAddress(hotFunctionEntry);
-        pCodeInfo->m_relOffset = hotSize + offsetFromColdStart;
     }
 
     MethodDesc *pMethodDesc;
@@ -6187,11 +6168,6 @@ BOOL ReadyToRunJitManager::JitCodeToMethodInfo(RangeSection * pRangeSection,
 
     if (pCodeInfo)
     {
-        // Should EECodeInfo::GetRelOffset() respect hot-cold splitting?
-        // Certain debugger code path assume this respects hot-cold splitting, but others might not.
-        pCodeInfo->m_relOffset = (DWORD)
-            (RelativePc - RUNTIME_FUNCTION__BeginAddress(FunctionEntry));
-
         // We are using RUNTIME_FUNCTION as METHODTOKEN
         pCodeInfo->m_methodToken = METHODTOKEN(pRangeSection, dac_cast<TADDR>(FunctionEntry));
 
@@ -6199,6 +6175,17 @@ BOOL ReadyToRunJitManager::JitCodeToMethodInfo(RangeSection * pRangeSection,
         AMD64_ONLY(_ASSERTE((RawFunctionEntry->UnwindData & RUNTIME_FUNCTION_INDIRECT) == 0));
         pCodeInfo->m_pFunctionEntry = RawFunctionEntry;
 #endif
+        MethodRegionInfo methodRegionInfo;
+        JitTokenToMethodRegionInfo(pCodeInfo->m_methodToken, &methodRegionInfo);
+        if ((methodRegionInfo.coldSize > 0) && (currentInstr >= methodRegionInfo.coldStartAddress))
+        {
+            pCodeInfo->m_relOffset = (DWORD)
+                (methodRegionInfo.hotSize + (currentInstr - methodRegionInfo.coldStartAddress));
+        }
+        else
+        {
+            pCodeInfo->m_relOffset = (DWORD)(RelativePc - RUNTIME_FUNCTION__BeginAddress(FunctionEntry));
+        }
     }
 
     return TRUE;
@@ -6393,25 +6380,22 @@ void ReadyToRunJitManager::JitTokenToMethodRegionInfo(const METHODTOKEN& MethodT
             _ASSERTE((i % 2) == 1);
             ULONG coldMethodIndex = pInfo->m_pScratch[i - 1];
             PTR_RUNTIME_FUNCTION pColdRuntimeFunction = pRuntimeFunctions + coldMethodIndex;
-            methodRegionInfo->coldStartAddress = JitTokenToModuleBase(MethodToken) + RUNTIME_FUNCTION__BeginAddress(pColdRuntimeFunction);
-            
-            //What if we calculate hotSize before and use it to calculate coldSize
-            if(i == pInfo->m_nScratch - 1)
+            methodRegionInfo->coldStartAddress = JitTokenToModuleBase(MethodToken) 
+                + RUNTIME_FUNCTION__BeginAddress(pColdRuntimeFunction);
+            ULONG coldMethodIndexNext;
+
+            if (i == (pInfo->m_nScratch - 1))
             {
-
-                PTR_RUNTIME_FUNCTION pLastRuntimeFunction = pRuntimeFunctions + (nRuntimeFunctions - 1);
-                methodRegionInfo->coldSize = RUNTIME_FUNCTION__EndAddress(pLastRuntimeFunction, 0) - RUNTIME_FUNCTION__BeginAddress(pColdRuntimeFunction);
-
+                coldMethodIndexNext = nRuntimeFunctions - 1;
+            }
+            else
+            {
+                coldMethodIndexNext = pInfo->m_pScratch[i + 1] - 1;
             }
 
-            else{
-
-                ULONG coldMethodIndexNext = pInfo->m_pScratch[i + 1];
-                PTR_RUNTIME_FUNCTION pLastRuntimeFunction = pRuntimeFunctions + coldMethodIndexNext - 1;
-                methodRegionInfo->coldSize = RUNTIME_FUNCTION__EndAddress(pLastRuntimeFunction, 0) - RUNTIME_FUNCTION__BeginAddress(pColdRuntimeFunction);
-
-            }
-
+            PTR_RUNTIME_FUNCTION pLastRuntimeFunction = pRuntimeFunctions + coldMethodIndexNext;
+            methodRegionInfo->coldSize = RUNTIME_FUNCTION__EndAddress(pLastRuntimeFunction, 0)
+                - RUNTIME_FUNCTION__BeginAddress(pColdRuntimeFunction);
             methodRegionInfo->hotSize -= methodRegionInfo->coldSize;
 
             break;
