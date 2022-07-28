@@ -1,1 +1,0 @@
-call %~dp0dotnet.cmd %~dp0artifacts\bin\coreclr\windows.x64.Debug\R2RDump\R2RDump.dll --header --sc --in %~dp0artifacts\bin\coreclr\windows.x64.Debug\System.Private.CoreLib.dll > %~dp0artifacts\bin\coreclr\windows.x64.Debug\System.Private.CoreLib.r2rdump

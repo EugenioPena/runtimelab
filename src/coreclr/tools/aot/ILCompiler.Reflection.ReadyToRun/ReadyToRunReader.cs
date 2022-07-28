@@ -465,29 +465,20 @@ namespace ILCompiler.Reflection.ReadyToRun
             if (ReadyToRunHeader.Sections.TryGetValue(ReadyToRunSectionType.RuntimeFunctions, out ReadyToRunSection runtimeFunctionSection))
             {
                 int runtimeFunctionSize = CalculateRuntimeFunctionSize();
-                //Has to be unsigned? How to deal with that
                 int nRuntimeFunctions = runtimeFunctionSection.Size / runtimeFunctionSize;
                 bool[] isEntryPoint = new bool[nRuntimeFunctions];
-                IDictionary<int, int[]> dScratch = new Dictionary<int, int[]>();
+                SortedDictionary<int, int[]> dScratch = new SortedDictionary<int, int[]>();
                 
                 if (ReadyToRunHeader.Sections.TryGetValue(ReadyToRunSectionType.Scratch, out ReadyToRunSection scratchSection))
                 {
                     int count = scratchSection.Size / 8;
                     int scratchOffset = GetOffset(scratchSection.RelativeVirtualAddress);
                     List<List<int>> mScratch = new List<List<int>>();
-                    // Console.Write("nRuntimeFunctions: ");
-                    // Console.WriteLine(nRuntimeFunctions);
-                    // Console.Write("runtimeFunctionSize: ");
-                    // Console.WriteLine(runtimeFunctionSize);
-                    // Console.Write("scratchOffset: ");
-                    // Console.WriteLine(scratchOffset);
 
                     for (int i = 0; i < count; i++)
                     {
                         mScratch.Add(new List<int> {NativeReader.ReadInt32(Image, ref scratchOffset), NativeReader.ReadInt32(Image, ref scratchOffset)});
-                        // Console.Write(mScratch[i][0]);
-                        // Console.Write(",");
-                        // Console.WriteLine(mScratch[i][1]);
+
                     }
 
                     for (int i = 0; i < count - 1; i++)
@@ -495,33 +486,11 @@ namespace ILCompiler.Reflection.ReadyToRun
                         dScratch.Add(mScratch[i][1], Enumerable.Range(mScratch[i][0], (mScratch[i + 1][0] - mScratch[i][0])).ToArray());
                     } 
                     dScratch.Add(mScratch[count - 1][1], Enumerable.Range(mScratch[count - 1][0], (nRuntimeFunctions - mScratch[count - 1][0])).ToArray());
-
-                    // Console.Write("Debug Map:");
-                    // Console.Write(mScratch[count - 1][1]);
-                    // Console.Write(',');
-                    // Console.Write(mScratch[count - 1][0]);
-                    // Console.Write(',');
-                    // Console.WriteLine(nRuntimeFunctions - 1);
-
-                    foreach (var kvp in dScratch)
-                    {
-                        Console.Write("Key: {0}", kvp.Key);
-                        Console.Write("Value: [");
-                        foreach (var num in dScratch[kvp.Key])
-                        {
-                            Console.Write(num);
-                            Console.Write(",");
-
-                        }
-                        Console.WriteLine("]");
-
-                    }
-
+                }
                 //initialize R2RMethods
                 ParseMethodDefEntrypoints((section, reader) => ParseMethodDefEntrypointsSection(section, reader, isEntryPoint));
                 ParseInstanceMethodEntrypoints(isEntryPoint);
                 CountRuntimeFunctions(isEntryPoint, dScratch);
-                }
             }
         }
 
@@ -1101,39 +1070,33 @@ namespace ILCompiler.Reflection.ReadyToRun
             }
         }
 
-        private void CountRuntimeFunctions(bool[] isEntryPoint, IDictionary<int, int[]> dScratch)
+        private void CountRuntimeFunctions(bool[] isEntryPoint, SortedDictionary<int, int[]> dScratch)
         {
             int iMethod = 0;
             foreach (ReadyToRunMethod method in Methods)
             {
                 int runtimeFunctionId = method.EntryPointRuntimeFunctionId;
-
                 if (dScratch.ContainsKey(runtimeFunctionId))
                 {
-                    Console.WriteLine("CountRuntimeFunctions Debug");
-                    Console.Write(runtimeFunctionId);
-                    Console.Write(",");
-                    // Console.Write(isEntryPoint.Length);
-                    // Console.Write(",");
-                    if (runtimeFunctionId == -1)
-                        continue;
-
                     int coldSize = dScratch[iMethod].Length;
-                    //Is RuntimeFunctionCount meant to be the total or only for hot?
-                    method.RuntimeFunctionCount = 1;
+                    int hotSize; 
+                    if (iMethod == (dScratch.Count - 1))
+                    {
+                        hotSize = dScratch[0][0] - dScratch.ElementAt(iMethod).Key;
+                    }
+                    else
+                    {
+                        hotSize = dScratch.ElementAt(iMethod + 1).Key - dScratch.ElementAt(iMethod).Key;
+                    }
+                    method.RuntimeFunctionCount = hotSize + coldSize;
                     method.ColdRuntimeFunctionCount = coldSize;
                     method.ColdRuntimeFunctionId = dScratch[iMethod][0];
-
-                    Console.Write(method.ColdRuntimeFunctionId);
-                    Console.Write(",");
-                    Console.Write(method.ColdRuntimeFunctionCount);
-                    Console.Write(",");
-                    Console.WriteLine(method.RuntimeFunctionCount);
+                    iMethod++;
                 }
                 else
                 {
                     if (runtimeFunctionId == -1)
-                        continue;
+                    continue;
 
                     int count = 0;
                     int i = runtimeFunctionId;
@@ -1142,10 +1105,7 @@ namespace ILCompiler.Reflection.ReadyToRun
                         count++;
                         i++;
                     } while (i < isEntryPoint.Length && !isEntryPoint[i]);
-                    method.RuntimeFunctionCount = count;
                 }
-
-                iMethod++;
             }
         }
 

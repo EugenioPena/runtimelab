@@ -33,6 +33,22 @@ namespace CoreLab
                 Console.WriteLine("hello1");
             }
 
+            try
+            {
+                try
+                {
+                    System.Convert.FromHexString(null);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("hello1");
+            }
+
         }
         public static void Main(string[] args)
         {
