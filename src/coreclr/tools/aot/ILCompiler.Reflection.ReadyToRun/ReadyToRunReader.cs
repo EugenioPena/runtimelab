@@ -1078,10 +1078,8 @@ namespace ILCompiler.Reflection.ReadyToRun
                 int runtimeFunctionId = method.EntryPointRuntimeFunctionId;
                 if (dScratch.ContainsKey(runtimeFunctionId))
                 {
-                    Console.Write("CountRuntimeFunctions Debug");
-                    Console.WriteLine(runtimeFunctionId);
                     int coldSize = dScratch.ElementAt(iMethod).Value.Length;
-                    int hotSize; 
+                    int hotSize;
                     if (iMethod == (dScratch.Count - 1))
                     {
                         hotSize = dScratch[0][0] - dScratch.ElementAt(iMethod).Key;
