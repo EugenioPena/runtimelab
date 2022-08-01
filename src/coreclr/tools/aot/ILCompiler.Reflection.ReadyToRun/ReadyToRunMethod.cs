@@ -314,6 +314,8 @@ namespace ILCompiler.Reflection.ReadyToRun
         /// </summary>
         public int EntryPointRuntimeFunctionId { get; set; }
         public int ColdRuntimeFunctionId { get; set; }
+
+
         public int GcInfoRva { get; set; }
 
         public BaseGcInfo GcInfo
@@ -555,6 +557,7 @@ namespace ILCompiler.Reflection.ReadyToRun
         /// </summary>
         private void ParseRuntimeFunctions(bool partial)
         {
+            Console.WriteLine("ParseDebug");
             int runtimeFunctionId = EntryPointRuntimeFunctionId;
             int coldRuntimeFunctionId = ColdRuntimeFunctionId;
             int runtimeFunctionSize = _readyToRunReader.CalculateRuntimeFunctionSize();
@@ -562,14 +565,16 @@ namespace ILCompiler.Reflection.ReadyToRun
             int curOffset = runtimeFunctionOffset + runtimeFunctionId * runtimeFunctionSize;
             int coldOffset = runtimeFunctionOffset + coldRuntimeFunctionId * runtimeFunctionSize;
             int codeOffset = 0;
-            
+            Console.WriteLine(runtimeFunctionId);
+            Console.WriteLine(coldRuntimeFunctionId);
+            Console.WriteLine(runtimeFunctionSize);
+            Console.WriteLine(runtimeFunctionOffset);
+            Console.WriteLine(curOffset);
+            Console.WriteLine(coldOffset);
+            Console.WriteLine(RuntimeFunctionCount);
+
             for (int i = 0; i < RuntimeFunctionCount; i++)
             {
-                if (i == (RuntimeFunctionCount - ColdRuntimeFunctionCount))
-                {
-                    curOffset = coldOffset;
-                    runtimeFunctionId = coldRuntimeFunctionId;
-                }
                 int startRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref curOffset);
                 if (_readyToRunReader.Machine == Machine.ArmThumb2)
                 {
@@ -635,73 +640,73 @@ namespace ILCompiler.Reflection.ReadyToRun
                 codeOffset += rtf.Size;
             }
 
-            // for (int i = 0; i < (ColdRuntimeFunctionCount); i++)
-            // {
+            for (int i = 0; i < (ColdRuntimeFunctionCount); i++)
+            {
 
-            //     int startRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
-            //     if (_readyToRunReader.Machine == Machine.ArmThumb2)
-            //     {
-            //         // The low bit of this address is set since the function contains thumb code.
-            //         // Clear this bit in order to get the "real" RVA of the start of the function.
-            //         startRva = (int)(startRva & ~1);
-            //     }
-            //     int endRva = -1;
-            //     if (_readyToRunReader.Machine == Machine.Amd64)
-            //     {
-            //         endRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
-            //     }
-            //     int unwindRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
-            //     int unwindOffset = _readyToRunReader.CompositeReader.GetOffset(unwindRva);
+                int startRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
+                if (_readyToRunReader.Machine == Machine.ArmThumb2)
+                {
+                    // The low bit of this address is set since the function contains thumb code.
+                    // Clear this bit in order to get the "real" RVA of the start of the function.
+                    startRva = (int)(startRva & ~1);
+                }
+                int endRva = -1;
+                if (_readyToRunReader.Machine == Machine.Amd64)
+                {
+                    endRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
+                }
+                int unwindRva = NativeReader.ReadInt32(_readyToRunReader.Image, ref coldOffset);
+                int unwindOffset = _readyToRunReader.CompositeReader.GetOffset(unwindRva);
 
-            //     BaseUnwindInfo unwindInfo = null;
-            //     if (_readyToRunReader.Machine == Machine.I386)
-            //     {
-            //         unwindInfo = new x86.UnwindInfo(_readyToRunReader.Image, unwindOffset);
-            //     }
-            //     else if (_readyToRunReader.Machine == Machine.Amd64)
-            //     {
-            //         unwindInfo = new Amd64.UnwindInfo(_readyToRunReader.Image, unwindOffset);
-            //     }
-            //     else if (_readyToRunReader.Machine == Machine.ArmThumb2)
-            //     {
-            //         unwindInfo = new Arm.UnwindInfo(_readyToRunReader.Image, unwindOffset);
-            //     }
-            //     else if (_readyToRunReader.Machine == Machine.Arm64)
-            //     {
-            //         unwindInfo = new Arm64.UnwindInfo(_readyToRunReader.Image, unwindOffset);
-            //     }
+                BaseUnwindInfo unwindInfo = null;
+                if (_readyToRunReader.Machine == Machine.I386)
+                {
+                    unwindInfo = new x86.UnwindInfo(_readyToRunReader.Image, unwindOffset);
+                }
+                else if (_readyToRunReader.Machine == Machine.Amd64)
+                {
+                    unwindInfo = new Amd64.UnwindInfo(_readyToRunReader.Image, unwindOffset);
+                }
+                else if (_readyToRunReader.Machine == Machine.ArmThumb2)
+                {
+                    unwindInfo = new Arm.UnwindInfo(_readyToRunReader.Image, unwindOffset);
+                }
+                else if (_readyToRunReader.Machine == Machine.Arm64)
+                {
+                    unwindInfo = new Arm64.UnwindInfo(_readyToRunReader.Image, unwindOffset);
+                }
 
-            //     if (i == 0 && unwindInfo != null)
-            //     {
-            //         if (_readyToRunReader.Machine == Machine.I386)
-            //         {
-            //             GcInfoRva = unwindRva;
-            //         }
-            //         else
-            //         {
-            //             GcInfoRva = unwindRva + unwindInfo.Size;
-            //         }
-            //     }
+                if (i == 0 && unwindInfo != null)
+                {
+                    if (_readyToRunReader.Machine == Machine.I386)
+                    {
+                        GcInfoRva = unwindRva;
+                    }
+                    else
+                    {
+                        GcInfoRva = unwindRva + unwindInfo.Size;
+                    }
+                }
 
-            //     if (partial)
-            //     {
-            //         return;
-            //     }
+                if (partial)
+                {
+                    return;
+                }
 
-            //     RuntimeFunction rtf = new RuntimeFunction(
-            //         _readyToRunReader,
-            //         coldRuntimeFunctionId,
-            //         startRva,
-            //         endRva,
-            //         unwindRva,
-            //         codeOffset,
-            //         this,
-            //         unwindInfo);
+                RuntimeFunction rtf = new RuntimeFunction(
+                    _readyToRunReader,
+                    coldRuntimeFunctionId,
+                    startRva,
+                    endRva,
+                    unwindRva,
+                    codeOffset,
+                    this,
+                    unwindInfo);
 
-            //     _runtimeFunctions.Add(rtf);
-            //     coldRuntimeFunctionId++;
-            //     codeOffset += rtf.Size;
-            // }
+                _runtimeFunctions.Add(rtf);
+                coldRuntimeFunctionId++;
+                codeOffset += rtf.Size;
+            }
 
             _size = codeOffset;
         }
