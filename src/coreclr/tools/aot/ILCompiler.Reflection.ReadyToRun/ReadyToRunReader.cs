@@ -1123,7 +1123,7 @@ namespace ILCompiler.Reflection.ReadyToRun
             for (int i = 1; i < runtimeFunctions.Count; i++)
             {
                 Debug.Assert(runtimeFunctions[i - 1].StartAddress.CompareTo(runtimeFunctions[i].StartAddress) < 0, "RuntimeFunctions are not sorted");
-                Debug.Assert(runtimeFunctions[i - 1].EndAddress < runtimeFunctions[i].StartAddress, "RuntimeFunctions intervals overlap");
+                Debug.Assert(runtimeFunctions[i - 1].EndAddress <= runtimeFunctions[i].StartAddress, "RuntimeFunctions intervals overlap");
 
                 if (myObject != null)
                 {
