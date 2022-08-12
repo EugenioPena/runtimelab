@@ -634,6 +634,7 @@ namespace ILCompiler.Reflection.ReadyToRun
                 codeOffset += rtf.Size;
             }
             _size = codeOffset;
+            _readyToRunReader.ValidateRuntimeFunctions(_runtimeFunctions);
         }
     }
 }
