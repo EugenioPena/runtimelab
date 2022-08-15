@@ -1118,26 +1118,23 @@ namespace ILCompiler.Reflection.ReadyToRun
             List<RuntimeFunction> runtimeFunctions = (List<RuntimeFunction>) runtimeFunctionList;
             RuntimeFunction firstRuntimeFunction = runtimeFunctions[0];
             BaseUnwindInfo firstUnwindInfo = firstRuntimeFunction.UnwindInfo;
-            var myObject = firstUnwindInfo as Amd64.UnwindInfo;
+            var x64UnwindInfo = firstUnwindInfo as Amd64.UnwindInfo;
 
             for (int i = 1; i < runtimeFunctions.Count; i++)
             {
                 Debug.Assert(runtimeFunctions[i - 1].StartAddress.CompareTo(runtimeFunctions[i].StartAddress) < 0, "RuntimeFunctions are not sorted");
                 Debug.Assert(runtimeFunctions[i - 1].EndAddress <= runtimeFunctions[i].StartAddress, "RuntimeFunctions intervals overlap");
 
-                if (myObject != null)
+                if (x64UnwindInfo != null && ((x64UnwindInfo.Flags & (int)ILCompiler.Reflection.ReadyToRun.Amd64.UnwindFlags.UNW_FLAG_CHAININFO) == 0))
                 {
-                    Amd64.UnwindInfo arm64UnwindInfo;
-                    Amd64.UnwindInfo arm64UnwindInfoCurr;
-                    uint firstPersonalityRoutineRVA;
-                    uint currPersonalityRoutineRVA;
-
-                    arm64UnwindInfo = (Amd64.UnwindInfo) firstUnwindInfo;
-                    firstPersonalityRoutineRVA = arm64UnwindInfo.PersonalityRoutineRVA;
-                    arm64UnwindInfoCurr = (Amd64.UnwindInfo) runtimeFunctions[i].UnwindInfo;
-                    currPersonalityRoutineRVA = arm64UnwindInfoCurr.PersonalityRoutineRVA;
-
-                    Debug.Assert(firstPersonalityRoutineRVA == currPersonalityRoutineRVA, "RuntimeFunctions don't share the same PersonalityRoutineRVA");
+                    Amd64.UnwindInfo x64UnwindInfoCurr = (Amd64.UnwindInfo) runtimeFunctions[i].UnwindInfo;
+                    uint firstPersonalityRoutineRVA = x64UnwindInfo.PersonalityRoutineRVA;
+                    uint currPersonalityRoutineRVA = x64UnwindInfoCurr.PersonalityRoutineRVA;
+                
+                    if ((x64UnwindInfoCurr.Flags & (int)ILCompiler.Reflection.ReadyToRun.Amd64.UnwindFlags.UNW_FLAG_CHAININFO) == 0)
+                    {
+                        Debug.Assert(firstPersonalityRoutineRVA == currPersonalityRoutineRVA, "RuntimeFunctions don't share the same PersonalityRoutineRVA");
+                    }
                 }
             } 
         }
