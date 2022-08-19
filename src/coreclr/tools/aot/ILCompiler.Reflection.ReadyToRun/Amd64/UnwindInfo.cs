@@ -197,8 +197,12 @@ namespace ILCompiler.Reflection.ReadyToRun.Amd64
 
             Size = _offsetofUnwindCode + sizeOfUnwindCodes;
             int alignmentPad = -Size & 3;
-            Size += alignmentPad + sizeof(uint);
 
+            if ((Flags & (byte)UnwindFlags.UNW_FLAG_CHAININFO) == 0)
+            {
+                Size += alignmentPad + sizeof(uint);
+            }
+            
             // Personality routine RVA must be at 4-aligned address
             offset += alignmentPad;
             PersonalityRoutineRVA = NativeReader.ReadUInt32(image, ref offset);
@@ -242,7 +246,12 @@ namespace ILCompiler.Reflection.ReadyToRun.Amd64
                 }
                 sb.AppendLine($"        ------------------");
             }
-            sb.AppendLine($"        PersonalityRoutineRVA: 0x{PersonalityRoutineRVA:X8}");
+
+            if ((Flags & (byte)UnwindFlags.UNW_FLAG_CHAININFO) == 0)
+            {
+                sb.AppendLine($"        PersonalityRoutineRVA: 0x{PersonalityRoutineRVA:X8}");
+            }
+
             sb.AppendLine($"        Size: {Size} bytes");
 
             return sb.ToString();
